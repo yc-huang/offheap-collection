@@ -5,4 +5,6 @@ public interface Array<T> {
 	public void set(long idx, T obj);
 	
 	public T get(long idx);
+	
+	public void destroy();
 }

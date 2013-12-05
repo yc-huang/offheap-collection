@@ -25,4 +25,10 @@ public class SimpleArray<T> implements Array<T> {
 		return null;
 	}
 
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+		
+	}
+
 }
