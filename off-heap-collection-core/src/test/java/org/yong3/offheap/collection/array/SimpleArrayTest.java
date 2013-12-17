@@ -21,6 +21,7 @@ public class SimpleArrayTest {
 		long size = 10 * 1024 * 1024;
 		SimpleArray<String> stringArray = new SimpleArray<String>(String.class, size);
 		
+		long start = System.currentTimeMillis();
 		for(int i = 0; i < size; i++){
 			stringArray.set(i, "" + i);
 		}
@@ -36,6 +37,10 @@ public class SimpleArrayTest {
 		for(int i = 0; i < size; i++){
 			assertEquals("" + (i+1), stringArray.get(i));
 		}
+		
+		System.err.printf("cost:%d", System.currentTimeMillis() - start);
+		
+		stringArray.destroy();
 	}
 
 }

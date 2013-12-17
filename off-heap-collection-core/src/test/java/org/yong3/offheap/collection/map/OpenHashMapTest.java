@@ -83,6 +83,7 @@ public class OpenHashMapTest {
 			assertEquals(v, map.get(k));
 		}
 
+		map.destroy();
 	}
 
 	@Test
@@ -142,7 +143,7 @@ public class OpenHashMapTest {
 			assertTrue(map.contains(k));
 			assertEquals(v, map.get(k));
 		}
-
+		map.destroy();
 	}
 
 	@Test
@@ -206,7 +207,7 @@ public class OpenHashMapTest {
 			assertTrue(map.contains(key));
 			assertEquals(v, map.get(key));
 		}
-
+		map.destroy();
 	}
 
 	@Test
@@ -264,10 +265,10 @@ public class OpenHashMapTest {
 			assertTrue(map.contains(key));
 			assertEquals(i + 1, map.get(key).intValue());
 		}
-
+		map.destroy();
 	}
 
-	class IntHashable implements Hashable {
+	class IntHashable implements DualHashable {
 		int v;
 
 		public IntHashable(int v) {
@@ -297,7 +298,7 @@ public class OpenHashMapTest {
 
 	}
 
-	class StringHashable implements Hashable {
+	class StringHashable implements DualHashable {
 		char[] chars;
 
 		public StringHashable(String data) {
