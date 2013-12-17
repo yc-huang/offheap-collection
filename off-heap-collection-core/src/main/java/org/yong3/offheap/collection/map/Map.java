@@ -8,5 +8,7 @@ public interface Map<K, V> {
 	
 	public V remove(K key);
 	
+	public boolean contains(K key);
+	
 	public void destroy();
 }
