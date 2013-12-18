@@ -19,9 +19,16 @@ public class SimpleArrayTest {
 	@Test
 	public void test() {
 		long size = 10 * 1024 * 1024;
-		SimpleArray<String> stringArray = new SimpleArray<String>(String.class, size);
-		
 		long start = System.currentTimeMillis();
+		SimpleArray<String> stringArray = new SimpleArray<String>(String.class, size);
+		System.err.println("init cost:" + (System.currentTimeMillis() - start));
+		
+		start = System.currentTimeMillis();
+		
+		for(int i = 0; i < size; i++){
+			assertNull(stringArray.get(i));
+		}
+		
 		for(int i = 0; i < size; i++){
 			stringArray.set(i, "" + i);
 		}
@@ -38,7 +45,23 @@ public class SimpleArrayTest {
 			assertEquals("" + (i+1), stringArray.get(i));
 		}
 		
+		for(int i = 0; i < size; i++){
+			stringArray.remove(i);
+		}
+		
+		for(int i = 0; i < size; i++){
+			assertEquals(null, stringArray.get(i));
+		}
+		
 		System.err.printf("cost:%d", System.currentTimeMillis() - start);
+		
+//		SimpleArray<SimpleArray<String>> wrapper = new SimpleArray<SimpleArray<String>>((Class<SimpleArray<String>>) stringArray.getClass(), 1);
+//		wrapper.set(0, stringArray);
+//		
+//		SimpleArray<String> read = wrapper.get(0);
+//		for(int i = 0; i < size; i++){
+//			assertEquals("" + (i+1), read.get(i));
+//		}
 		
 		stringArray.destroy();
 	}
