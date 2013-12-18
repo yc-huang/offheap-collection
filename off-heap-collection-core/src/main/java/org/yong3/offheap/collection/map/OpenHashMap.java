@@ -23,7 +23,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	private Serializer<K> keySerializer;
 	private Serializer<V> valueSerializer;
 
-	final long idxAddr;
+	long idxAddr;
 	final int idxSize;
 	final int addressSize;
 	final int slotSize;
@@ -74,6 +74,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	}
 
 	public void put(final K key, final V value) {
+		check();
 		if (key == null || value == null) {
 			throw new NullPointerException("key or value should not be null.");
 		}
@@ -115,6 +116,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	}
 
 	public V remove(K key) {
+		check();
 		if (key == null) {
 			throw new NullPointerException("key or value should not be null.");
 		}
@@ -132,6 +134,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	}
 
 	public boolean contains(K key) {
+		check();
 		if (key == null) {
 			throw new NullPointerException("key should not be null.");
 		}
@@ -179,6 +182,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	}
 
 	public V get(K key) {
+		check();
 		if (key == null) {
 			throw new NullPointerException("key should not be null.");
 		}
@@ -215,11 +219,16 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 
 	@Override
 	public void destroy() {
+		check();
 		long slotAddr, recordAddr;
 		byte shortHashStored;
 		boolean empty;
+		
+		long tmpIdxAddr = idxAddr;
+		idxAddr = -1;
+		
 		for(int slot = 0; slot < idxSize; slot++){
-			slotAddr = idxAddr + slot * slotSize;
+			slotAddr = tmpIdxAddr + slot * slotSize;
 			shortHashStored = allocator.getByte(slotAddr);
 			empty = (shortHashStored & BYTE_0x80) == 0;
 			if (!empty) {
@@ -227,7 +236,11 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 				allocator.deallocate(recordAddr);
 			}
 		}
-		allocator.deallocate(idxAddr);
+		allocator.deallocate(tmpIdxAddr);
 	}
 
+	
+	private void check(){
+		if(idxAddr == -1) throw new java.lang.IllegalStateException(this.getClass().getName() + " is already destroyed.");
+	}
 }
