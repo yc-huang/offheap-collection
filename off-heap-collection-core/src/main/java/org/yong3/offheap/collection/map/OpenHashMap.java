@@ -29,12 +29,12 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	final int slotSize;
 	final int maxProbe;
 
-	public long get_check = 0;
-	public long get = 0;
+//	public long get_check = 0;
+//	public long get = 0;
 
-	public long put_check = 0;
-	public long put_find = 0;
-	public long put = 0;
+//	public long put_check = 0;
+//	public long put_find = 0;
+//	public long put = 0;
 
 	Class<K> keyCls;
 	Class<V> valueCls;
@@ -79,27 +79,13 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 			throw new NullPointerException("key or value should not be null.");
 		}
 
-		// System.err.println("put " + key);
-
-		long start = System.nanoTime();
 		Address addr = checkExist(key);
-		//System.err.println(addr.slotAddr);
-		put_check += System.nanoTime() - start;
 
-		start = System.nanoTime();
 		int keySize = keySerializer.getOffheapSize(key);
 		int valueSize = valueSerializer.getOffheapSize(value);
 		long recordAddr = allocator.allocate(keySize + valueSize);
 		keySerializer.write(recordAddr, key);
-		K rkey = keySerializer.read(recordAddr, keyCls);
-		if(!key.equals(rkey)){
-			System.err.println("key serializing error:expected " + key + " but get " + rkey);
-		}
 		valueSerializer.write(recordAddr + keySize, value);
-		V rvalue = valueSerializer.read(recordAddr + keySize, valueCls);
-		if(!value.equals(rvalue)){
-			System.err.println("value serializing error: expected " + value + " but get " + rvalue);
-		}
 
 		if (addr.recordAddr != -1) {
 			// exist, replace
@@ -107,12 +93,11 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 			allocator.putLong(addr.slotAddr + 1, recordAddr);
 		} else {
 			// insert to current slot
-			byte shortHash = (byte) ((key.hashCode()/971 & 0xff) | BYTE_0x80);
+			byte shortHash = (byte) ((getHash2(key) & 0xff) | BYTE_0x80);
 			if(shortHash == 0) shortHash = 1;
 			allocator.putByte(addr.slotAddr, shortHash);
 			allocator.putLong(addr.slotAddr + 1, recordAddr);
 		}
-		put += System.nanoTime() - start;
 	}
 
 	public V remove(K key) {
@@ -143,10 +128,10 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 
 	// return the record address if found, else return -1.
 	private Address checkExist(K key) {
-		int slot = key.hashCode() & idxSize;
+		int slot = getHash1(key) & idxSize;
 
 		long slotAddr = idxAddr + slot * slotSize;
-		byte shortHash = (byte) ((key.hashCode()/971 & 0xff) | BYTE_0x80);
+		byte shortHash = (byte) ((getHash2(key) & 0xff) | BYTE_0x80);
 		if(shortHash == 0) shortHash = 1;
 
 		int probe = 0;
@@ -160,7 +145,6 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 				currentAddr.recordAddr = -1;
 				currentAddr.slotAddr = slotAddr;
 				// currentAddr.probe = probe;
-				//System.err.println(slotAddr);
 				return currentAddr;
 			} else if (shortHashStored == shortHash) {
 				// might found
@@ -187,18 +171,12 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 			throw new NullPointerException("key should not be null.");
 		}
 
-		long start = System.nanoTime();
-
 		long recordAddr = checkExist(key).recordAddr;
-
-		put_check += System.nanoTime() - start;
 
 		if (recordAddr == -1)
 			return null;
 		else {
-			start = System.nanoTime();
 			V v = valueSerializer.read(recordAddr + keySerializer.getOffheapSize(key), valueCls);
-			get += System.nanoTime() - start;
 			return v;
 		}
 	}
@@ -239,6 +217,13 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 		allocator.deallocate(tmpIdxAddr);
 	}
 
+	protected int getHash1(K key){
+		return key.hashCode();
+	}
+	
+	protected int getHash2(K key){
+		return key.hashCode() / 971;
+	}
 	
 	private void check(){
 		if(idxAddr == -1) throw new java.lang.IllegalStateException(this.getClass().getName() + " is already destroyed.");
