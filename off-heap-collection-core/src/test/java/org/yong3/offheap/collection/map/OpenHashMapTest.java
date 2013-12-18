@@ -25,14 +25,67 @@ public class OpenHashMapTest {
 	public void tearDown() throws Exception {
 	}
 
+
+	@Test
+	public void testRawStringKey() {
+		System.gc();
+		int MAP_SIZE = 1 * 1024 * 1024;		
+		
+		Map<String, String> map = new OpenHashMap<String, String>(
+				String.class, String.class, MAP_SIZE);
+
+	
+		for (int i = 0; i < MAP_SIZE; i++) {
+			assertFalse(map.contains(new String("" + i)));
+		}
+	
+		for (int i = 0; i < MAP_SIZE; i++) {
+			String key = "" + i;
+			map.put(key, key);
+		}
+		
+		for (int i = 0; i < MAP_SIZE; i++) {
+			String key = "" + i;
+			assertTrue(map.contains(key));
+		}
+		
+		for (int i = 0; i < MAP_SIZE; i++) {
+			String key = "" + i;
+			assertEquals(key, map.get(key));
+		}
+		
+
+		for (int i = 0; i < MAP_SIZE; i++) {
+			String k = "" + i;
+			String v = "" + (i + 1);
+			map.put(k, v);
+		}
+		
+
+
+		for (int i = 0; i < MAP_SIZE; i++) {
+			String k = "" + i;
+			String v = "" + (i + 1);
+			assertTrue(map.contains(k));
+		}
+		
+		for (int i = 0; i < MAP_SIZE; i++) {
+			String k = "" + i;
+			String v = "" + (i + 1);
+			assertEquals(v, map.get(k));
+		}
+		map.destroy();
+	}
+	
 	@Test
 	public void testRawStringKeyPerf() {
+		System.gc();
 		int MAP_SIZE = 10 * 1024 * 1024;		
 		
 		//warmup
-		this.testRawStringKey();
+		//this.testRawStringKey();
 		
-		NestedOpenHashMap<String, String> map = new NestedOpenHashMap<String, String>(
+		Map<String, String> map = new OpenHashMap<String, String>(
 				String.class, String.class, MAP_SIZE);
 
 		
@@ -101,64 +154,16 @@ public class OpenHashMapTest {
 		System.err.printf("destroy cost:%d us\n", (System.nanoTime() - start)/1000);
 	}
 
-	
-	@Test
-	public void testRawStringKey() {
-		int MAP_SIZE = 1 * 1024 * 1024;		
-		
-		NestedOpenHashMap<String, String> map = new NestedOpenHashMap<String, String>(
-				String.class, String.class, MAP_SIZE);
-
-	
-		for (int i = 0; i < MAP_SIZE; i++) {
-			assertFalse(map.contains(new String("" + i)));
-		}
-	
-		for (int i = 0; i < MAP_SIZE; i++) {
-			String key = "" + i;
-			map.put(key, key);
-		}
-		
-		for (int i = 0; i < MAP_SIZE; i++) {
-			String key = "" + i;
-			assertTrue(map.contains(key));
-		}
-		
-		for (int i = 0; i < MAP_SIZE; i++) {
-			String key = "" + i;
-			assertEquals(key, map.get(key));
-		}
-		
-
-		for (int i = 0; i < MAP_SIZE; i++) {
-			String k = "" + i;
-			String v = "" + (i + 1);
-			map.put(k, v);
-		}
-		
-
-
-		for (int i = 0; i < MAP_SIZE; i++) {
-			String k = "" + i;
-			String v = "" + (i + 1);
-			assertTrue(map.contains(k));
-		}
-		
-		for (int i = 0; i < MAP_SIZE; i++) {
-			String k = "" + i;
-			String v = "" + (i + 1);
-			assertEquals(v, map.get(k));
-		}
-		map.destroy();
-	}
 
 	@Test
 	public void testRawStringKeyAgain() {
-		MemoryAllocator allocator = MemoryAllocatorFactory.get();
-		Serializer<String> keySerializer = SerializerFactory.get(String.class);
-		Serializer<String> valueSerializer = SerializerFactory
-				.get(String.class);
-		assertTrue(valueSerializer.getClass() == StringSerializer.class);
+		System.gc();
+		
+//		MemoryAllocator allocator = MemoryAllocatorFactory.get();
+//		Serializer<String> keySerializer = SerializerFactory.get(String.class);
+//		Serializer<String> valueSerializer = SerializerFactory
+//				.get(String.class);
+//		assertTrue(valueSerializer.getClass() == StringSerializer.class);
 
 		int MAP_SIZE = 1 * 1024 * 1024;
 		OpenHashMap<String, String> map = new OpenHashMap<String, String>(
@@ -170,15 +175,15 @@ public class OpenHashMapTest {
 
 		for (int i = 0; i < MAP_SIZE; i++) {
 			String key = "" + i;
-			long addr = allocator.allocate(keySerializer.getOffheapSize(key));
-			keySerializer.write(addr, key);
-			assertEquals(key, keySerializer.read(addr, String.class));
-			allocator.deallocate(addr);
-
-			addr = allocator.allocate(valueSerializer.getOffheapSize(key));
-			valueSerializer.write(addr, key);
-			assertEquals(key, valueSerializer.read(addr, String.class));
-			allocator.deallocate(addr);
+//			long addr = allocator.allocate(keySerializer.getOffheapSize(key));
+//			keySerializer.write(addr, key);
+//			assertEquals(key, keySerializer.read(addr, String.class));
+//			allocator.deallocate(addr);
+//
+//			addr = allocator.allocate(valueSerializer.getOffheapSize(key));
+//			valueSerializer.write(addr, key);
+//			assertEquals(key, valueSerializer.read(addr, String.class));
+//			allocator.deallocate(addr);
 
 			// assertTrue((key.shortHash() & (byte)0x80) != 0);
 			map.put(key, key);
@@ -214,12 +219,13 @@ public class OpenHashMapTest {
 
 	@Test
 	public void testStringKey() {
-		MemoryAllocator allocator = MemoryAllocatorFactory.get();
-		Serializer<StringHashable> keySerializer = SerializerFactory
-				.get(StringHashable.class);
-		Serializer<String> valueSerializer = SerializerFactory
-				.get(String.class);
-		assertTrue(valueSerializer.getClass() == StringSerializer.class);
+		System.gc();
+//		MemoryAllocator allocator = MemoryAllocatorFactory.get();
+//		Serializer<StringHashable> keySerializer = SerializerFactory
+//				.get(StringHashable.class);
+//		Serializer<String> valueSerializer = SerializerFactory
+//				.get(String.class);
+//		assertTrue(valueSerializer.getClass() == StringSerializer.class);
 
 		int MAP_SIZE = 10 * 1024 * 1024;
 		OpenHashMap<StringHashable, String> map = new OpenHashMap<StringHashable, String>(
@@ -232,15 +238,15 @@ public class OpenHashMapTest {
 		for (int i = 0; i < MAP_SIZE; i++) {
 			String v = "" + i;
 			StringHashable key = new StringHashable(v);
-			long addr = allocator.allocate(keySerializer.getOffheapSize(key));
-			keySerializer.write(addr, key);
-			assertEquals(key, keySerializer.read(addr, StringHashable.class));
-			allocator.deallocate(addr);
-
-			addr = allocator.allocate(valueSerializer.getOffheapSize(v));
-			valueSerializer.write(addr, v);
-			assertEquals(v, valueSerializer.read(addr, String.class));
-			allocator.deallocate(addr);
+//			long addr = allocator.allocate(keySerializer.getOffheapSize(key));
+//			keySerializer.write(addr, key);
+//			assertEquals(key, keySerializer.read(addr, StringHashable.class));
+//			allocator.deallocate(addr);
+//
+//			addr = allocator.allocate(valueSerializer.getOffheapSize(v));
+//			valueSerializer.write(addr, v);
+//			assertEquals(v, valueSerializer.read(addr, String.class));
+//			allocator.deallocate(addr);
 
 			// assertTrue((key.shortHash() & (byte)0x80) != 0);
 			map.put(key, v);
@@ -278,11 +284,12 @@ public class OpenHashMapTest {
 
 	@Test
 	public void testIntKey() {
-		MemoryAllocator allocator = MemoryAllocatorFactory.get();
-		Serializer<IntHashable> keySerializer = SerializerFactory
-				.get(IntHashable.class);
-		Serializer<Integer> valueSerializer = SerializerFactory
-				.get(Integer.class);
+		System.gc();
+//		MemoryAllocator allocator = MemoryAllocatorFactory.get();
+//		Serializer<IntHashable> keySerializer = SerializerFactory
+//				.get(IntHashable.class);
+//		Serializer<Integer> valueSerializer = SerializerFactory
+//				.get(Integer.class);
 
 		int MAP_SIZE = 10 * 1024 * 1024;
 		OpenHashMap<IntHashable, Integer> map = new OpenHashMap<IntHashable, Integer>(
@@ -294,16 +301,16 @@ public class OpenHashMapTest {
 
 		for (int i = 0; i < MAP_SIZE; i++) {
 			IntHashable key = new IntHashable(i);
-			long addr = allocator.allocate(keySerializer.getOffheapSize(key));
-			keySerializer.write(addr, key);
-			assertEquals(key, keySerializer.read(addr, IntHashable.class));
-			allocator.deallocate(addr);
-
-			addr = allocator.allocate(valueSerializer.getOffheapSize(i));
-			valueSerializer.write(addr, i);
-			assertEquals(i, valueSerializer.read(addr, Integer.class)
-					.intValue());
-			allocator.deallocate(addr);
+//			long addr = allocator.allocate(keySerializer.getOffheapSize(key));
+//			keySerializer.write(addr, key);
+//			assertEquals(key, keySerializer.read(addr, IntHashable.class));
+//			allocator.deallocate(addr);
+//
+//			addr = allocator.allocate(valueSerializer.getOffheapSize(i));
+//			valueSerializer.write(addr, i);
+//			assertEquals(i, valueSerializer.read(addr, Integer.class)
+//					.intValue());
+//			allocator.deallocate(addr);
 
 			// assertTrue((key.shortHash() & (byte)0x80) != 0);
 			map.put(key, i);
