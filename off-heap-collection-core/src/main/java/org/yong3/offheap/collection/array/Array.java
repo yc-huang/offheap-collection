@@ -6,5 +6,7 @@ public interface Array<T> {
 	
 	public T get(long idx);
 	
+	public void remove(long idx);
+	
 	public void destroy();
 }
