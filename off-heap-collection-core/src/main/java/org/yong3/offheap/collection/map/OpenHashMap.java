@@ -51,7 +51,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	public OpenHashMap(Class<K> keyCls, Class<V> valueCls, int size){
 		int _idxSize = getIndexSize(size);
 		int _maxProbe = _idxSize >> 10;
-		init(keyCls, valueCls, _idxSize, Math.min(Math.max(_maxProbe, 128), 8192));
+		init(keyCls, valueCls, _idxSize, Math.min(Math.max(_maxProbe, 128), 16 * 1024));
 	}
 	
 	public OpenHashMap(Class<K> keyCls, Class<V> valueCls, int size, int maxProbe) {
