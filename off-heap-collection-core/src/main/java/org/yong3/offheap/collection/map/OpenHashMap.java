@@ -24,10 +24,10 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	private Serializer<V> valueSerializer;
 
 	long idxAddr;
-	final int idxSize;
-	final int addressSize;
-	final int slotSize;
-	final int maxProbe;
+	int idxSize;
+	int addressSize;
+	int slotSize;
+	int maxProbe;
 
 //	public long get_check = 0;
 //	public long get = 0;
@@ -39,30 +39,36 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 	Class<K> keyCls;
 	Class<V> valueCls;
 
-	class Address {
-		long slotAddr;
-		long recordAddr;
-		int probe;
-	}
+//	class Address {
+//		long slotAddr;
+//		long recordAddr;
+//		int probe;
+//	}
 
-	Address currentAddr = new Address();
+	long[] currentAddr = new long[]{-1, 0};//first one is recordAddr, second one is slotAddr
 	MemoryAllocator allocator;
 
-	public OpenHashMap(Class<K> keyCls, Class<V> valueCls, int size) {
+	public OpenHashMap(Class<K> keyCls, Class<V> valueCls, int size){
+		int _idxSize = getIndexSize(size);
+		int _maxProbe = _idxSize >> 10;
+		init(keyCls, valueCls, _idxSize, Math.min(Math.max(_maxProbe, 128), 8192));
+	}
+	
+	public OpenHashMap(Class<K> keyCls, Class<V> valueCls, int size, int maxProbe) {
+		init(keyCls, valueCls, getIndexSize(size), maxProbe);
+	}
+	
+	private void init(Class<K> keyCls, Class<V> valueCls, int idxSize, int maxProbe) {
+		this.idxSize = idxSize;
+		this.maxProbe = Math.max(maxProbe, 0);//at least be 0
+		
 		allocator = MemoryAllocatorFactory.get();
 		addressSize = unsafe.addressSize();
 		System.out.println("Address size:" + addressSize);
 		slotSize = 1 + addressSize; // add 1 byte for short hash/digest
-		int _idxSize = nextPower2(size, 65536);
-
-		if (_idxSize * 1.0 / size < 1.5) {
-			_idxSize *= 2;
-		}
-
-		idxSize = _idxSize - 1;
 
 		System.out.printf("idx size:%,d, slot size:%d\n", idxSize, slotSize);
-		maxProbe = idxSize >> 10;
+		
 		System.out.printf("max probe size:%,d\n", maxProbe);
 
 		idxAddr = allocator.allocate(idxSize * slotSize);
@@ -72,6 +78,16 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 		valueSerializer = SerializerFactory.get(valueCls);
 		
 	}
+	
+	private int getIndexSize(int size){
+		int _idxSize = nextPower2(size, 65536);
+
+		if (_idxSize * 1.0 / size < 1.5) {
+			_idxSize *= 2;
+		}
+
+		return _idxSize - 1;
+	}
 
 	public void put(final K key, final V value) {
 		check();
@@ -79,7 +95,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 			throw new NullPointerException("key or value should not be null.");
 		}
 
-		Address addr = checkExist(key);
+		long[] addr = checkExist(key);
 
 		int keySize = keySerializer.getOffheapSize(key);
 		int valueSize = valueSerializer.getOffheapSize(value);
@@ -87,16 +103,16 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 		keySerializer.write(recordAddr, key);
 		valueSerializer.write(recordAddr + keySize, value);
 
-		if (addr.recordAddr != -1) {
+		if (addr[0] != -1) {
 			// exist, replace
-			allocator.deallocate(addr.recordAddr);
-			allocator.putLong(addr.slotAddr + 1, recordAddr);
+			allocator.deallocate(addr[0]);
+			allocator.putLong(addr[1] + 1, recordAddr);
 		} else {
 			// insert to current slot
 			byte shortHash = (byte) ((getHash2(key) & 0xff) | BYTE_0x80);
 			if(shortHash == 0) shortHash = 1;
-			allocator.putByte(addr.slotAddr, shortHash);
-			allocator.putLong(addr.slotAddr + 1, recordAddr);
+			allocator.putByte(addr[1], shortHash);
+			allocator.putLong(addr[1] + 1, recordAddr);
 		}
 	}
 
@@ -106,14 +122,16 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 			throw new NullPointerException("key or value should not be null.");
 		}
 		V value = null;
-		Address addr = checkExist(key);
-		if (addr.recordAddr != -1) {
+		long[] addr = checkExist(key);
+		if (addr[0] != -1) {
 			// exist, remove
-			value = valueSerializer.read(addr.recordAddr + keySerializer.getOffheapSize(key), valueCls);
-			// clear slot
-			allocator.putByte(addr.slotAddr, (byte) 0);//TODO; this is not safe, and might cause some key un-accessable
+			value = valueSerializer.read(addr[0] + keySerializer.getOffheapSize(key), valueCls);
+			
 			// remove record
-			allocator.deallocate(addr.recordAddr);
+			allocator.deallocate(addr[0]);
+			// clear slot
+			allocator.putByte(addr[1], (byte) 0);//TODO; this is not safe, and might cause some key un-accessable
+			
 		}
 		return value;
 	}
@@ -123,11 +141,11 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 		if (key == null) {
 			throw new NullPointerException("key should not be null.");
 		}
-		return checkExist(key).recordAddr != -1;
+		return checkExist(key)[0] != -1;
 	}
 
 	// return the record address if found, else return -1.
-	private Address checkExist(K key) {
+	private long[] checkExist(K key) {
 		int slot = getHash1(key) & idxSize;
 
 		long slotAddr = idxAddr + slot * slotSize;
@@ -142,8 +160,8 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 			shortHashStored = allocator.getByte(slotAddr);
 			empty = (shortHashStored & BYTE_0x80) == 0;
 			if (empty) {
-				currentAddr.recordAddr = -1;
-				currentAddr.slotAddr = slotAddr;
+				currentAddr[0] = -1;
+				currentAddr[1] = slotAddr;							
 				// currentAddr.probe = probe;
 				return currentAddr;
 			} else if (shortHashStored == shortHash) {
@@ -151,8 +169,8 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 				recordAddr = allocator.getLong(slotAddr + 1);
 				K storedKey = keySerializer.read(recordAddr, keyCls);
 				if (key.equals(storedKey)) {
-					currentAddr.slotAddr = slotAddr;
-					currentAddr.recordAddr = recordAddr;
+					currentAddr[0] = recordAddr;
+					currentAddr[1] = slotAddr;
 					return currentAddr;
 				}
 			}
@@ -171,7 +189,7 @@ public class OpenHashMap<K, V> implements Map<K, V>{
 			throw new NullPointerException("key should not be null.");
 		}
 
-		long recordAddr = checkExist(key).recordAddr;
+		long recordAddr = checkExist(key)[0];
 
 		if (recordAddr == -1)
 			return null;
