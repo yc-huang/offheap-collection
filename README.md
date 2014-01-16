@@ -3,6 +3,7 @@ offheap-collection
 
 A Map/Array implement which stored at off-heap memory.
 
+Do not use Object, Class... as the generic type, which will not work。
 ##Sample Usage:
 
 ####simple array:
