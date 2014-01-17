@@ -14,7 +14,7 @@ Do not use Object, Class... as the generic type, which will not work。
     
     //write to array by index
     for(int i = 0; i < size; i++){
-		stringArray.set(i, "" + i);
+		stringArray.set(i, String.valueOf(i));
 	}
 	
 	//read from array
@@ -40,8 +40,8 @@ Causion: The current implementation of "remove" operation is not finished.
 			String.class, String.class, MAP_SIZE);
 			
 	for (int i = 0; i < MAP_SIZE; i++) {
-		String key = "" + i;
-		String value = "" + i;
+		String key = String.valueOf(i);
+		String value = String.valueOf(i);
 		
 		//put a key
 		map.put(key, value);
@@ -53,7 +53,7 @@ Causion: The current implementation of "remove" operation is not finished.
 		String v = map.get(key);
 		
 		//update the value
-		map.put(key, value + i);
+		map.put(key, String.valueOf(i + 1));
 	}
 	
 	//destroy the map
