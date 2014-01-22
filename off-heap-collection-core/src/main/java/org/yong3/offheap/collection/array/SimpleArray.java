@@ -39,7 +39,11 @@ public class SimpleArray<T> implements Array<T> {
 	@Override
 	public void set(long idx, T obj) {
 		check(idx);
-		long addr = allocator.allocate(serializer.getOffheapSize(obj));
+		long addr = allocator.getLong(idxAddress + idx * idxScale);
+		if (addr != 0) {
+			allocator.deallocate(addr);
+		}
+		addr = allocator.allocate(serializer.getOffheapSize(obj));
 		serializer.write(addr, obj);
 		allocator.putLong(idxAddress + idx * idxScale, addr);
 	}
